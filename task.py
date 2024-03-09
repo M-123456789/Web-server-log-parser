@@ -3,33 +3,74 @@
 # импортируем библиотеку работы со случайными числами
 import random
 
+# импортируем библиотеку работы с регулярными выражениями
+import re
+
+from datetime import date
+
 # Функция генерации случайной даты
 # Возвращает строковое значение даты в формате YYYY-MM-DD
 def generate_random_date():
     days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     
-    random_year = random.randint(2000, 2024)
-    random_month = random.randint(0, len(days_in_month)-1)
-    
+    current_year = int(date.today().year)
+    random_year = random.randint(2000, current_year)
 
-    if random_month == 1 and random_year % 4 == 0:
+    if (random_year == current_year):
+        random_month = random.randint(1, int(date.today().month))
+    else:
+        random_month = random.randint(1, 12)
+    
+    if random_month == 2 and random_year % 4 == 0:
         # если месяц февраль и год високосный, то дата может быть 1-29 февраля.    
         random_day_in_month = random.randint(1, 29)    
     else:
-        random_day_in_month = random.randint(1, days_in_month[random_month])    
+        random_day_in_month = random.randint(1, days_in_month[random_month-1])    
 
-    date=str(random_year)+'-'
+    random_date=str(random_year)+'-'
     
     if random_month < 10:
-        date=date+'0'
-    date=date+str(random_month)+'-'
+        random_date += '0'
+    random_date += str(random_month)+'-'
     
     if random_day_in_month < 10:
-        date=date+'0'
-    date=date+str(random_day_in_month)
+        random_date += '0'
+    random_date += str(random_day_in_month)
 
-    return date
+    return random_date
 
+# Функция проверки даты на валидность
+# Передаваемый параметр - строка с датой в формате YYYY-MM-DD
+# Если дата валидна, функция возвращает True, иначе False
+def validate_date(request_date):
+    days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    print ("Дата запроса: " + request_date, end ="")
+    if len(request_date) == 10:
+        match = re.search(r'\d\d\d\d\-\d\d\-\d\d', request_date)
+        if match:
+            request_year = int (request_date[:4])
+            request_month = int (request_date[5:7])
+            request_day = int (request_date[-2:])
+
+            current_year = int(date.today().year)
+            current_month = int(date.today().month)
+            current_day = int(date.today().day)
+     
+            if ((request_year >= 2000 and request_year < current_year and
+                (request_month >= 1 and request_month <= 12 and
+                request_day >= 1 and request_day <= days_in_month[request_month-1]) or
+                (request_year % 4 == 0 and request_month == 2 and request_day == 29)) 
+                or 
+                (request_year == current_year and
+                ((request_month >= 1 and request_month < current_month and
+                request_day >= 1 and request_day <= days_in_month[request_month-1]) or 
+                (request_year % 4 == 0 and request_month == 2 and request_day == 29) or
+                (request_month == current_month and 
+                request_day >=1 and request_day <= current_day)))):
+                print (" - валидна")
+                return True
+    print (" - невалидна")
+    return False
 
 # Функция генерации случайного времени
 # Возвращает строковое значение времени в формате HH:MM:SS
@@ -54,6 +95,25 @@ def generate_random_time():
     
     return time
 
+# Функция проверки времени на валидность
+# Передаваемый параметр - строка с временем в формате HH:MM:SS
+# Если время валидно, функция возвращает True, иначе False
+def validate_time(request_time):
+    print ("Время запроса: " + request_time, end ="")
+    if len(request_time) == 8:
+        match = re.search(r'\d\d\:\d\d\:\d\d', request_time)
+        if match:
+            request_hour = int (request_time[:2])
+            request_minute = int (request_time[3:5])
+            request_second = int (request_time[-2:])
+
+            if (request_hour >= 0 and request_hour <= 23 and
+                request_minute >=0 and request_minute <= 59 and
+                request_second >=0 and request_second <= 59):
+                print (" - валидно")
+                return True
+    print (" - невалидно")
+    return False
 
 # Функция генерации случайного типа запроса
 # Возвращает строковое значение типа запроса из перечня возможных типов: GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH
@@ -62,11 +122,40 @@ def generate_request_type():
     return web_request_type[random.randint(0, len(web_request_type)-1)]
 
 
+# Функция проверки типа запроса на валидность
+# Передаваемый параметр - строка с типом запроса
+# Если тип запроса валиден, функция возвращает True, иначе False
+def validate_request_type(request_type):
+    print ("Тип запроса: " + request_type, end ="")
+    web_request_type = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH']
+    if request_type in web_request_type:
+        print (" - валиден")
+        return True
+    print (" - невалиден")
+    return False
+
+
+# импортируем библиотеку работы с IP-адресами
+import ipaddress
+
+# Функция проверки корректности IP адреса
+def ip_address_validator(ip):
+    try:
+        ip_obj = ipaddress.ip_address(ip)
+        print(f"{ip} is a valid IP address")
+        return True
+    except ValueError:
+        print(f"ERROR: {ip} is not a valid IP address!")
+        return False
+
 # Функция генерации случайного IP адреса запроса
 # Возвращает строковое значение в диапазоне 1.1.1.1-254.254.254.254
 def generate_ip_address():
-    ip_address = str(random.randint(1, 254)) + "." + str(random.randint(0, 254)) + "." + \
-                 str(random.randint(0, 254)) + "." + str(random.randint(1, 900))
+    valid_ip = 0
+    while valid_ip == 0:
+        ip_address = str(random.randint(1, 254)) + "." + str(random.randint(0, 254)) + "." + \
+                     str(random.randint(0, 254)) + "." + str(random.randint(1, 254))
+        valid_ip=ip_address_validator(ip_address)
     return ip_address
 
 # Функция генерации случайного кода ответа веб-сервера на запрос
@@ -133,53 +222,67 @@ with open('log.txt','w') as log_file:
 print("Сгенерировали файл журнала веб-сервера. Нажмите ENTER для его чтения и обработки.")
 input()
 
-# импортируем библиотеку работы с регулярными выражениями
-import re
-
-# импортируем библиотеку работы с IP-адресами
-import ipaddress
-
-# Функция проверки корректности IP адреса
-def ip_address_validator(ip):
-    try:
-        ip_obj = ipaddress.ip_address(ip)
-        print(f"{ip} is a valid IP address")
-        return True
-    except ValueError:
-        print(f"ERROR: {ip} is not a valid IP address!")
-        return False
+from heapq import nlargest
 
 # читаем сгенерированный лог файл
 with open('log.txt','r') as log_file:
 
+    total_records_in_file = 0
+    total_valid_requests = 0
+    requests_types_counts = {'GET':0, 'POST':0, 'PUT':0, 'DELETE':0, 'HEAD':0, 'OPTIONS':0, 'PATCH':0}
+
     for string_from_file in log_file:
         print(string_from_file, end="")
+        
+        total_records_in_file += 1
+
         if len(string_from_file) < len('2024-01-01 01:23:59 1.1.1.1,GET,404,/,20'):
             print("Строка [" + string_from_file + "] не соответствует минимальной длине - строка не может быть обработана")
         else:
+            # Для учёта запроса дата, время, IP-адрес, тип запроса, код ответа веб-сервера, ендпойнт и длина запроса должны быть валидны
+            # Для этого используем счётчик валидных полей
+            request_check = 0
+
             #Проверяем корректность даты
             request_date = string_from_file[:10] 
-            print (request_date)
-            match = re.search(r'\d\d\d\d\-\d\d\-\d\d', request_date)
-            if match:
-                print ("Дата запроса: " + match[0])
-            else:
-                print ("Дата запроса не соответствует шаблону")
+            #print (request_date)
+            if validate_date(request_date):
+                request_check += 1
 
             #Проверяем корректность времени
             request_time = string_from_file[11:11+8] 
-            print (request_time)
-            match = re.search(r'\d\d\:\d\d\:\d\d', request_time)
-            if match:
-                print ("Время запроса: " + match[0])
-            else:
-                print ("Время запроса не соответствует шаблону")
+            #print (request_time)
+            if validate_time(request_time):
+                request_check += 1
 
             #Проверяем корректность IP-адреса
             #match = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', string_from_file[20:])
-            request_ip_address = string_from_file[20:].split(',')
-            print ("Подстрока для поиска IP-адреса " + request_ip_address[0])
-            match_ip_address = ip_address_validator (request_ip_address[0])
-            if match_ip_address:
-                print ("IP-адрес валидный: " + match[0])
+            request_payload = string_from_file[20:].split(',')
+            print ("Полезная информация в запросе для дальнейшего анализа: ", end="")
+            print (request_payload)
+            #print ("Подстрока для проверки IP-адреса " + request_payload[0])
+            if ip_address_validator (request_payload[0]):
+                #print ("IP-адрес валидный: " + request_payload[0])
+                request_check += 1
+            
+            #Проверяем корректность типа запроса
+            if validate_request_type(request_payload[1]):
+                request_check += 1
+
+            print ("Проверок на валидность запроса пройдено успешно: " + str(request_check) + " из 4")
+            #Если все проверки прошли успешно, учитываем запрос в дальнейшем
+            if request_check == 4:
+                total_valid_requests += 1
                 
+                requests_types_counts[request_payload[1]] += 1 
+    
+    print ("Всего строк в файле: " + str(total_records_in_file))
+    print ("Количество валидных запросов: " + str(total_valid_requests))
+    print ("Типы запросов и их количество: ", end="")
+    print (requests_types_counts)
+
+    sorted_dict = sorted(requests_types_counts.items(), key=lambda x:x[1], reverse=True)[:5]
+    converted_dict = dict(sorted_dict)
+
+    print ("Топ 5 запросов по количеству: ")
+    print (converted_dict)
