@@ -1,4 +1,4 @@
-################### Генератор лог файла ##################
+################### Генератор и обработчик лог файла ##################
 
 # импортируем библиотеку работы со случайными числами
 import random
@@ -6,7 +6,11 @@ import random
 # импортируем библиотеку работы с регулярными выражениями
 import re
 
+# импортируем библиотеку работы c датой
 from datetime import date
+
+# импортируем библиотеку работы с IP-адресами
+import ipaddress
 
 # Функция генерации случайной даты
 # Возвращает строковое значение даты в формате YYYY-MM-DD
@@ -135,9 +139,6 @@ def validate_request_type(request_type):
     return False
 
 
-# импортируем библиотеку работы с IP-адресами
-import ipaddress
-
 # Функция проверки корректности IP адреса
 def ip_address_validator(ip):
     try:
@@ -148,6 +149,7 @@ def ip_address_validator(ip):
         print(f"ERROR: {ip} is not a valid IP address!")
         return False
 
+
 # Функция генерации случайного IP адреса запроса
 # Возвращает строковое значение в диапазоне 1.1.1.1-254.254.254.254
 def generate_ip_address():
@@ -157,6 +159,7 @@ def generate_ip_address():
                      str(random.randint(0, 254)) + "." + str(random.randint(1, 254))
         valid_ip=ip_address_validator(ip_address)
     return ip_address
+
 
 # Функция генерации случайного кода ответа веб-сервера на запрос
 # Возвращает первые три символа строкового значения кода ответа веб-сервера из диапазона преднастроенных значений
@@ -191,7 +194,25 @@ def generate_request_endpoint():
     web_request_endpoint = ['/', '/adminka', '/forum', '/catalog', '/authorization_endpoint']
     return web_request_endpoint[random.randint(0, len(web_request_endpoint)-1)]
 
-#################### Вход в программу ###############
+# Функция проверки валидности размера ответа на запрос
+# Получает строковое значение размера ответа на запрос
+# Размер ответа валиден если строка содержит целое число от 20 до 65355
+def validate_request_answer_size(request_answer_size):
+    if len(request_answer_size) >=2 and len(request_answer_size) <=5:
+        print ("Длина стоки в функции валидаторе размера ответа на запрос = " + str(len(request_answer_size)))
+        match = re.search(r'\d{2,5}', request_answer_size)
+        if match:
+            if int(request_answer_size) >=20 or int(request_answer_size) <= 65355:
+                return True
+            
+        return False
+
+
+#################### Вход в программу #########################
+#################### Вход в программу #########################
+#################### Вход в программу #########################
+
+#################### Генерация лог файла ######################
 
 #Открываем лог файл для записи
 with open('log.txt','w') as log_file:
@@ -206,37 +227,43 @@ with open('log.txt','w') as log_file:
         request_time = generate_random_time()
         request_ip_address = generate_ip_address()
         request_type = generate_request_type()
-        request_server_answer_code = generate_request_answer_code()
         request_endpoint = generate_request_endpoint()
+        request_server_answer_code = generate_request_answer_code()
         request_content_length = str(random.randint(20, 65535))
 
         request_record = request_date + " " + request_time + " " + \
             request_ip_address + "," + request_type + "," + \
-            request_server_answer_code + "," + request_endpoint + "," + \
+            request_endpoint + "," + request_server_answer_code + "," + \
             request_content_length + "\n"
         
         print(request_record, end="")
         
         log_file.writelines(request_record)
 
+print()
 print("Сгенерировали файл журнала веб-сервера. Нажмите ENTER для его чтения и обработки.")
 input()
 
-from heapq import nlargest
 
+################### Чтение и обработка лог файла #######################
+
+print("Читаем сгенерированный файл")
 # читаем сгенерированный лог файл
 with open('log.txt','r') as log_file:
 
     total_records_in_file = 0
     total_valid_requests = 0
     requests_types_counts = {'GET':0, 'POST':0, 'PUT':0, 'DELETE':0, 'HEAD':0, 'OPTIONS':0, 'PATCH':0}
+    requests_ip_adresses = {}
+    requests_answers_sizes = []
+    requests_answers_sizes_requests = []
 
     for string_from_file in log_file:
-        print(string_from_file, end="")
-        
+        print()
+        print(string_from_file)
         total_records_in_file += 1
 
-        if len(string_from_file) < len('2024-01-01 01:23:59 1.1.1.1,GET,404,/,20'):
+        if len(string_from_file) < len('2024-01-01 01:23:59 1.1.1.1,GET,/,404,20'):
             print("Строка [" + string_from_file + "] не соответствует минимальной длине - строка не может быть обработана")
         else:
             # Для учёта запроса дата, время, IP-адрес, тип запроса, код ответа веб-сервера, ендпойнт и длина запроса должны быть валидны
@@ -255,34 +282,89 @@ with open('log.txt','r') as log_file:
             if validate_time(request_time):
                 request_check += 1
 
-            #Проверяем корректность IP-адреса
-            #match = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', string_from_file[20:])
             request_payload = string_from_file[20:].split(',')
+            for index, item in enumerate(request_payload):
+                request_payload[index]=item.rstrip('\n')
+
             print ("Полезная информация в запросе для дальнейшего анализа: ", end="")
             print (request_payload)
-            #print ("Подстрока для проверки IP-адреса " + request_payload[0])
-            if ip_address_validator (request_payload[0]):
-                #print ("IP-адрес валидный: " + request_payload[0])
-                request_check += 1
-            
-            #Проверяем корректность типа запроса
-            if validate_request_type(request_payload[1]):
-                request_check += 1
 
-            print ("Проверок на валидность запроса пройдено успешно: " + str(request_check) + " из 4")
-            #Если все проверки прошли успешно, учитываем запрос в дальнейшем
-            if request_check == 4:
-                total_valid_requests += 1
+            if len(request_payload) == 5:
+            
+                #Проверяем корректность IP-адреса
+                request_ip_address = request_payload[0]
+                #print ("Подстрока для проверки IP-адреса " + request_ip_address)
+                if ip_address_validator (request_ip_address):
+                    #print ("IP-адрес валидный: " + request_ip_address)
+                    request_check += 1
                 
-                requests_types_counts[request_payload[1]] += 1 
-    
+                request_url = request_payload[1]
+                #Проверяем корректность типа запроса
+                if validate_request_type(request_url):
+                    request_check += 1
+
+                request_answer_size = request_payload[4].rstrip('\n')
+                print ("Размер ответа на запрос - строчный параметр: " + request_answer_size)
+                #Проверяем корректность размера ответа на запрос
+                if validate_request_answer_size(request_answer_size):
+                    print ("Размер ответа на запрос валиден.")
+                    request_check += 1  
+                else:
+                    print ("Размер ответа на запрос невалиден.")
+
+                print ("Проверок на валидность запроса пройдено успешно: " + str(request_check) + " из 5")
+                #Если все проверки прошли успешно, учитываем запрос в дальнейшем
+                if request_check == 5:
+                    total_valid_requests += 1
+                    requests_types_counts[request_payload[1]] += 1 
+
+                    if request_ip_address in requests_ip_adresses:
+                        requests_ip_adresses[request_ip_address] += 1
+                    else:
+                        requests_ip_adresses[request_ip_address] = 1
+
+                    request_answer_size = int(request_answer_size)
+                    print ("request_answer_size = " + str(request_answer_size))
+                    #Формируем топ-5 размеров ответов на запросы
+                    if len(requests_answers_sizes) == 5:
+                        min_index=requests_answers_sizes.index(min(requests_answers_sizes))
+                        print ("min_index = " + str(min_index))
+                        print ("requests_answers_sizes [min_index] = " + str(requests_answers_sizes[min_index]))
+                        if request_answer_size > requests_answers_sizes[min_index]:
+                            requests_answers_sizes[min_index] = request_answer_size
+                            requests_answers_sizes_requests[min_index] = string_from_file.rstrip('\n')
+                    else:
+                        requests_answers_sizes.append(request_answer_size)
+                        requests_answers_sizes_requests.append(string_from_file.rstrip('\n'))
+                    print ("Массив топ-5 размеров ответов на запросы: ")
+                    print (requests_answers_sizes)
+
+    print ()        
     print ("Всего строк в файле: " + str(total_records_in_file))
     print ("Количество валидных запросов: " + str(total_valid_requests))
-    print ("Типы запросов и их количество: ", end="")
+    print ("Типы валидных запросов и их количество: ", end="")
     print (requests_types_counts)
 
+    #Сортируем словарь с типами запросов, топ-5 типов запросов выводим.
     sorted_dict = sorted(requests_types_counts.items(), key=lambda x:x[1], reverse=True)[:5]
     converted_dict = dict(sorted_dict)
-
-    print ("Топ 5 запросов по количеству: ")
+    print ()
+    print ("Топ 5 запросов по типу запросов: ")
     print (converted_dict)
+
+    #Сортируем словарь с IP-адресами запросов, топ-5 IP-адресов выводим.
+    sorted_dict = sorted(requests_ip_adresses.items(), key=lambda x:x[1], reverse=True)[:5]
+    converted_dict = dict(sorted_dict)
+    print ()
+    print ("Топ 5 IP-адресов: ")
+    print (converted_dict)
+    
+    print ()
+    print ("Топ 5 размеров ответов на запросы - только размеры: ")
+    print (requests_answers_sizes)
+    
+    print ()
+    print ("Топ 5 размеров ответов на запросы - запросы с размерами: ")
+    for item in requests_answers_sizes_requests:
+        print (item)
+    #print (requests_answers_sizes_requests)
